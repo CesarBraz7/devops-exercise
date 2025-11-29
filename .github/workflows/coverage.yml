@@ -69,8 +69,8 @@ jobs:
 
       - name: Resumo final - Sucesso
         if: success()
-        run: echo "Build concluído - Cobertura: ${{ steps.coverage.outputs.coverage }}%"
+        run: echo "Build concluido - Cobertura ${{ steps.coverage.outputs.coverage }}%"
 
       - name: Resumo final - Falha
         if: failure()
-        run: echo "Build falhou - Cobertura insuficiente: ${{ steps.coverage.outputs.coverage }}%"
+        run: echo "Build falhou - Cobertura insuficiente ${{ steps.coverage.outputs.coverage }}%"
