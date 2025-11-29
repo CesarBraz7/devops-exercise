@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Make mvnw executable
+        run: chmod +x ./mvnw
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -36,7 +39,7 @@ jobs:
           path: target/site/checkstyle.html
 
       - name: Fail if CheckStyle found violations
-        if: steps.checkstyle-check.outcome == 'failure'
+        if: steps.checkstyle-check.conclusion == 'failure'
         run: |
           echo "::error::CheckStyle encontrou violações! Verifique o relatório para mais detalhes."
           exit 1
