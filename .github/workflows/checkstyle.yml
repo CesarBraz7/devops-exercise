@@ -1,0 +1,42 @@
+name: CheckStyle Validation
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  checkstyle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Run CheckStyle Validation
+        id: checkstyle-check
+        run: ./mvnw checkstyle:check
+        continue-on-error: true
+
+      - name: Generate CheckStyle Report
+        if: always()
+        run: ./mvnw checkstyle:checkstyle
+
+      - name: Upload CheckStyle Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkstyle-report
+          path: target/site/checkstyle.html
+
+      - name: Fail if CheckStyle found violations
+        if: steps.checkstyle-check.outcome == 'failure'
+        run: |
+          echo "::error::CheckStyle encontrou violações! Verifique o relatório para mais detalhes."
+          exit 1
