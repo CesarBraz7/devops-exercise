@@ -1,0 +1,70 @@
+name: Scheduled Build
+
+on:
+  schedule:
+    - cron: '50 6 * * *'
+    - cron: '0,30 8-17 * * *'
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Iniciando build
+        run: |
+          echo "==================================="
+          echo "Iniciando build"
+          echo "Data/Hora UTC: $(date -u)"
+          echo "==================================="
+
+      - name: Compilar o projeto
+        run: mvn clean compile
+
+      - name: Executar testes e gerar relatório
+        run: mvn test
+        continue-on-error: true
+
+      - name: Gerar relatório de testes
+        if: always()
+        run: |
+          echo "==================================="
+          echo "Relatório de Testes"
+          echo "==================================="
+          if [ -d "target/surefire-reports" ]; then
+            echo "Testes executados com sucesso!"
+            find target/surefire-reports -name "*.xml" -exec echo "Arquivo de relatório: {}" \;
+            if [ -f "target/surefire-reports/TEST-*.xml" ]; then
+              echo "Resumo dos testes:"
+              grep -h "testsuite" target/surefire-reports/TEST-*.xml | head -1
+            fi
+          else
+            echo "Nenhum relatório de teste encontrado"
+          fi
+
+      - name: Upload relatório de testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_number }}
+          path: target/surefire-reports/
+          retention-days: 30
+
+      - name: Build finalizada
+        if: always()
+        run: |
+          echo "==================================="
+          echo "Build finalizada. Status: ${{ job.status }}"
+          echo "Data/Hora UTC: $(date -u)"
+          echo "==================================="
