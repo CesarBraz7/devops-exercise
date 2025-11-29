@@ -1,0 +1,53 @@
+name: Workflow Triggers
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  trigger-info:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Exibir evento de disparo
+        run: |
+          echo "==================================="
+          echo "INFORMAÇÕES DO DISPARO"
+          echo "==================================="
+          echo "Evento: ${{ github.event_name }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Run Number: ${{ github.run_number }}"
+          echo "==================================="
+
+      - name: Detalhes do evento Push
+        if: github.event_name == 'push'
+        run: |
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Commit Message: ${{ github.event.head_commit.message }}"
+          echo "Committer: ${{ github.event.head_commit.committer.name }}"
+
+      - name: Detalhes do evento Pull Request
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "PR Title: ${{ github.event.pull_request.title }}"
+          echo "PR Author: ${{ github.event.pull_request.user.login }}"
+          echo "Base Branch: ${{ github.event.pull_request.base.ref }}"
+          echo "Head Branch: ${{ github.event.pull_request.head.ref }}"
+
+      - name: Detalhes do evento Manual
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Workflow disparado manualmente"
+          echo "Disparado por: ${{ github.actor }}"
