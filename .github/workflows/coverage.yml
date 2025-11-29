@@ -1,0 +1,76 @@
+name: Code Coverage Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Executar testes com JaCoCo
+        run: mvn clean test jacoco:report
+
+      - name: Verificar cobertura de testes
+        id: coverage
+        run: |
+          if [ -f "target/site/jacoco/jacoco.csv" ]; then
+            INSTRUCTION_MISSED=$(awk -F',' 'NR>1 {sum+=$4} END {print sum}' target/site/jacoco/jacoco.csv)
+            INSTRUCTION_COVERED=$(awk -F',' 'NR>1 {sum+=$5} END {print sum}' target/site/jacoco/jacoco.csv)
+          
+            TOTAL=$((INSTRUCTION_MISSED + INSTRUCTION_COVERED))
+          
+            if [ $TOTAL -gt 0 ]; then
+              COVERAGE=$(awk "BEGIN {printf \"%.2f\", ($INSTRUCTION_COVERED / $TOTAL) * 100}")
+              echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+              echo "Cobertura: $COVERAGE%"
+            else
+              echo "coverage=0" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "coverage=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validar cobertura mínima
+        run: |
+          COVERAGE="${{ steps.coverage.outputs.coverage }}"
+          MIN_COVERAGE=80
+          
+          if (( $(echo "$COVERAGE >= $MIN_COVERAGE" | bc -l) )); then
+            echo "Cobertura: $COVERAGE% - Aprovado"
+          else
+            echo "Cobertura: $COVERAGE% - Reprovado (mínimo: $MIN_COVERAGE%)"
+            exit 1
+          fi
+
+      - name: Upload relatório JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 30
+
+      - name: Resumo final - Sucesso
+        if: success()
+        run: echo "Build concluído - Cobertura: ${{ steps.coverage.outputs.coverage }}%"
+
+      - name: Resumo final - Falha
+        if: failure()
+        run: echo "Build falhou - Cobertura insuficiente: ${{ steps.coverage.outputs.coverage }}%"
